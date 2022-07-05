@@ -13,6 +13,7 @@ use bevy::{
         keyboard::{KeyCode, KeyboardInput},
         mouse::{MouseButton, MouseButtonInput, MouseScrollUnit, MouseWheel},
         ElementState, Input,
+        touch::TouchInput,
     },
     prelude::EventReader,
     utils::HashMap,
@@ -33,6 +34,7 @@ pub struct InputEvents<'w, 's> {
     ev_keyboard_input: EventReader<'w, 's, KeyboardInput>,
     ev_window_focused: EventReader<'w, 's, WindowFocused>,
     ev_window_created: EventReader<'w, 's, WindowCreated>,
+    ev_touch: EventReader<'w, 's, TouchInput>,
 }
 
 #[derive(SystemParam)]
@@ -40,6 +42,7 @@ pub struct InputResources<'w, 's> {
     #[cfg(feature = "manage_clipboard")]
     egui_clipboard: Res<'w, crate::EguiClipboard>,
     keyboard_input: Res<'w, Input<KeyCode>>,
+    pointer_touch_id: Local<'s , Option<u64>>,
     egui_input: ResMut<'w, HashMap<WindowId, EguiInput>>,
     #[system_param(ignore)]
     marker: PhantomData<&'s usize>,
@@ -225,6 +228,8 @@ pub fn process_input(
         }
     }
 
+    let focused_window_height = window_resources.focused_window.as_ref().map(|window_id| window_resources.window_sizes[&window_id].height());
+
     if let Some(focused_input) = window_resources
         .focused_window
         .as_ref()
@@ -269,6 +274,77 @@ pub fn process_input(
         }
 
         focused_input.raw_input.modifiers = modifiers;
+
+        for touch in input_events.ev_touch.iter() {
+            let scale_factor = egui_settings.scale_factor as f32;
+            let mut touch_position: (f32, f32) = (touch.position / scale_factor).into();
+            touch_position.1 = focused_window_height.unwrap() / scale_factor - touch_position.1;
+
+            // Emit touch event
+            focused_input.raw_input.events.push(egui::Event::Touch {
+                device_id: egui::TouchDeviceId(egui::epaint::util::hash(touch.id)),
+                id: egui::TouchId::from(touch.id),
+                phase: match touch.phase {
+                    bevy::input::touch::TouchPhase::Started => egui::TouchPhase::Start,
+                    bevy::input::touch::TouchPhase::Moved => egui::TouchPhase::Move,
+                    bevy::input::touch::TouchPhase::Ended => egui::TouchPhase::End,
+                    bevy::input::touch::TouchPhase::Cancelled => egui::TouchPhase::Cancel,
+                },
+                pos: egui::pos2(touch_position.0, touch_position.1),
+                force: match touch.force {
+                    Some(bevy::input::touch::ForceTouch::Normalized(force)) => force as f32,
+                    Some(bevy::input::touch::ForceTouch::Calibrated {
+                        force,
+                        max_possible_force,
+                        ..
+                    }) => (force / max_possible_force) as f32,
+                    None => 0_f32,
+                },
+            });
+
+            // If we're not yet tanslating a touch or we're translating this very
+            // touch …
+            if input_resources.pointer_touch_id.is_none() || input_resources.pointer_touch_id.unwrap() == touch.id {
+                // … emit PointerButton resp. PointerMoved events to emulate mouse
+                match touch.phase {
+                    bevy::input::touch::TouchPhase::Started => {
+                        *input_resources.pointer_touch_id = Some(touch.id);
+                        // First move the pointer to the right location
+                        focused_input.raw_input
+                            .events
+                            .push(egui::Event::PointerMoved(egui::pos2(touch_position.0, touch_position.1)));
+                        // Then do mouse button input
+                        focused_input.raw_input.events.push(egui::Event::PointerButton {
+                            pos: egui::pos2(touch_position.0, touch_position.1),
+                            button: egui::PointerButton::Primary,
+                            pressed: true,
+                            modifiers,
+                        });
+                    }
+                    bevy::input::touch::TouchPhase::Moved => {
+                        focused_input.raw_input
+                            .events
+                            .push(egui::Event::PointerMoved(egui::pos2(touch_position.0, touch_position.1)));
+                    }
+                    bevy::input::touch::TouchPhase::Ended => {
+                        *input_resources.pointer_touch_id = None;
+                        focused_input.raw_input.events.push(egui::Event::PointerButton {
+                            pos: egui::pos2(touch_position.0, touch_position.1),
+                            button: egui::PointerButton::Primary,
+                            pressed: false,
+                            modifiers,
+                        });
+                        focused_input.raw_input.events.push(egui::Event::PointerGone);
+                    }
+                    bevy::input::touch::TouchPhase::Cancelled => {
+                        *input_resources.pointer_touch_id = None;
+                        focused_input.raw_input.events.push(egui::Event::PointerGone);
+                    }
+                }
+            }
+
+        }
+
     }
 
     for egui_input in input_resources.egui_input.values_mut() {
