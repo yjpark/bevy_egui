@@ -2,13 +2,13 @@ use bevy::{
     prelude::*,
     render::{camera::RenderTarget, render_graph::RenderGraph, RenderApp},
     window::{CreateWindow, PresentMode, WindowId},
-    winit::WinitSettings,
 };
 use bevy_egui::{EguiContext, EguiPlugin};
 use once_cell::sync::Lazy;
 
 static SECOND_WINDOW_ID: Lazy<WindowId> = Lazy::new(WindowId::new);
 
+#[derive(Resource)]
 struct Images {
     bevy_icon: Handle<Image>,
 }
@@ -16,12 +16,6 @@ struct Images {
 fn main() {
     let mut app = App::new();
     app.add_plugins(DefaultPlugins)
-        // Optimal power saving and present mode settings for desktop apps.
-        .insert_resource(WinitSettings::desktop_app())
-        .insert_resource(WindowDescriptor {
-            present_mode: PresentMode::Mailbox,
-            ..Default::default()
-        })
         .add_plugin(EguiPlugin)
         .init_resource::<SharedUiState>()
         .add_startup_system(load_assets)
@@ -52,13 +46,13 @@ fn create_new_window(mut create_window_events: EventWriter<CreateWindow>, mut co
         descriptor: WindowDescriptor {
             width: 800.,
             height: 600.,
-            present_mode: PresentMode::Mailbox,
+            present_mode: PresentMode::AutoVsync,
             title: "Second window".to_string(),
             ..Default::default()
         },
     });
     // second window camera
-    commands.spawn_bundle(PerspectiveCameraBundle {
+    commands.spawn(Camera3dBundle {
         camera: Camera {
             target: RenderTarget::Window(*SECOND_WINDOW_ID),
             ..Default::default()
@@ -79,7 +73,7 @@ struct UiState {
     input: String,
 }
 
-#[derive(Default)]
+#[derive(Default, Resource)]
 struct SharedUiState {
     shared_input: String,
 }

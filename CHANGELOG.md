@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.1] - 14-Nov-2022
+
+### Fixed
+
+- Fix clearing event readers (missed events warnings)
+
+## [0.17.0] - 13-Nov-2022
+
+### Added
+
+- Update to Bevy 0.9 ([#127](https://github.com/mvlabat/bevy_egui/pull/127), [#133](https://github.com/mvlabat/bevy_egui/pull/133), thanks to @terhechte and @jakobhellermann)
+
+### Fixed
+
+- Fix window resizing on Windows ([#128](https://github.com/mvlabat/bevy_egui/pull/128) by @chronicl) 
+
+## [0.16.1] - 18-Sep-2022
+
+### Fixed
+
+- Fix releasing buttons outside a window ([#123](https://github.com/mvlabat/bevy_egui/pull/123), thanks to @TheRawMeatball for flagging the issue in [#121](https://github.com/mvlabat/bevy_egui/pull/121))
+
+## [0.16.0] - 24-Aug-2022
+
+### Added
+
+- Update Egui to 0.19
+
+## [0.15.1] - 13-Aug-2022
+
+### Fixed
+
+- Store image handles instead of ids to persist strong handles.
+
+## [0.15.0] - 30-Jul-2022
+
+### Added
+
+- Update Bevy to 0.8 ([#111](https://github.com/mvlabat/bevy_egui/pull/111) by @DGriffin91)
+- Add a feature that can be disabled to replace default Egui fonts ([#110](https://github.com/mvlabat/bevy_egui/pull/110) by @iTitus)
+
 ## [0.14.0] - 1-May-2022
 
 ### Added
@@ -57,7 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - User texture ids are now tracked internally ([#71](https://github.com/mvlabat/bevy_egui/pull/71)).
   - Instead of using `set_egui_texture`, you can now use `add_image` which returns a texture id itself
-  (see the updated [ui](https://github.com/mvlabat/bevy_egui/blob/c611671603a70e5956ba06f77bb94851c7ced659/examples/ui.rs) example).
+    (see the updated [ui](https://github.com/mvlabat/bevy_egui/blob/c611671603a70e5956ba06f77bb94851c7ced659/examples/ui.rs) example).
 - Switch to `arboard` for managing clipboard ([#72](https://github.com/mvlabat/bevy_egui/pull/72)).
 
 ## [0.11.1] - 4-Feb-2022
@@ -94,7 +135,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Change points delta from 24 to 50 for `MouseScrollUnit::Line` event.
 - Fix handling of mouse button events for Safari (inputs are no longer ignored).
-- Scroll is no longer applied to every Bevy window. 
+- Scroll is no longer applied to every Bevy window.
 
 ## [0.10.1] - 16-Jan-2022
 
